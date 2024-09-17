@@ -22,16 +22,31 @@ const loginCustomer = async (email, password) => {
   if (!customer) {
     throw new Error("email does not exist");
   }
-
-  //kiểm tra mật khẩu
-  const isMatch = bcrypt.compareSync(password, customer.password);
-  if (!isMatch) {
-    throw new Error("Wrong password");
+  console.log("customer", customer);
+  if (customer.isVerified) {
+    //kiểm tra mật khẩu
+    const isMatch = bcrypt.compareSync(password, customer.password);
+    if (!isMatch) {
+      throw new Error("Wrong password");
+    }
+    return customer;
+  } else {
+    throw new Error("email has not been authenticated");
   }
-  return customer;
+};
+const verifyCustomer = async (token) => {
+  const customer = await customerModel.findOne({ verificationToken: token });
+  if (!customer) {
+    return res.status(400).json({ message: "Invalid or expired token." });
+  }
+  customer.isVerified = true;
+  customer.verificationToken = undefined; // Clear the token
+  const result = await customer.save();
+  return result;
 };
 module.exports = {
   createCustomer,
   emailExistsService,
   loginCustomer,
+  verifyCustomer,
 };

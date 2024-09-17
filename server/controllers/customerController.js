@@ -3,8 +3,11 @@ const {
   createCustomer,
   emailExistsService,
   loginCustomer,
+  verifyCustomer,
 } = require("../services/customerService");
 const jwtAuth = require("../auth/JwtAuth");
+const sendVerificationEmail = require("../config/emailConfig");
+const customer = require("../models/customerModel");
 
 //sign up
 const createCustomerAPI = async (req, res) => {
@@ -42,11 +45,10 @@ const createCustomerAPI = async (req, res) => {
         .json({ success: false, message: "passwords are not the same" });
     }
     const result = await createCustomer(email, password, name, phone);
-    const token = jwtAuth.genToken(result._id);
-    res.status(200).json({
-      success: true,
-      message: "created customer success",
-      token: token,
+    await sendVerificationEmail(email, result.verificationToken);
+    res.status(201).json({
+      message:
+        "User registered. Please check your email to verify your account.",
     });
   } catch (error) {
     return res
@@ -88,7 +90,23 @@ const loginCustomerAPI = async (req, res) => {
     return;
   }
 };
+
+//verify Customer
+const verifyCustomerAPI = async (req, res) => {
+  const { token } = req.params;
+  try {
+    const result = await verifyCustomer(token);
+    res.status(200).json({
+      success: true,
+      message: "Account verified successfully.",
+      customer: result,
+    });
+  } catch (error) {
+    res.status(400).json({ message: "Error verifying account", error });
+  }
+};
 module.exports = {
   createCustomerAPI,
   loginCustomerAPI,
+  verifyCustomerAPI,
 };
