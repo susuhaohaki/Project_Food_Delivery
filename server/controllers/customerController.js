@@ -18,6 +18,9 @@ const createCustomerAPI = async (req, res) => {
     password: Joi.string()
       .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
       .required(),
+    ConfirmPassword: Joi.string()
+      .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
+      .required(),
     name: Joi.string().alphanum().min(3).max(30).required(),
     phone: Joi.string().pattern(new RegExp("^[0-9]{8,11}$")).required(),
   });
@@ -25,13 +28,18 @@ const createCustomerAPI = async (req, res) => {
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
-  const { email, password, name, phone } = value;
+  const { email, password, ConfirmPassword, name, phone } = value;
   try {
     const emailExists = await emailExistsService(email);
     if (emailExists) {
       return res
         .status(400)
         .json({ success: false, message: "email already exists" });
+    }
+    if (ConfirmPassword !== password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "passwords are not the same" });
     }
     const result = await createCustomer(email, password, name, phone);
     const token = jwtAuth.genToken(result._id);
